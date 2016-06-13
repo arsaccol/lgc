@@ -10,17 +10,17 @@ int main(int argc, char** argv)
 	if(argc != 5)
 	{
 		printf("Incorrect arguments\n");
-		printf("Usage: ./lgc <X0 a b n>\n");
+		printf("Usage: ./lgc <X0 n a b>\n");
 		return EXIT_FAILURE;
 	}
 
-	unsigned int X0, a, b, n;	
+	unsigned int X0, n, a, b;	
 	std::vector<unsigned int> numbers;
-	X0 = atoi(argv[1]);
-	a = atoi(argv[2]);
-	b = atoi(argv[3]);
-	n = atoi(argv[4]);
-	
+	X0 =	atoi(argv[1]);
+	n =	atoi(argv[2]);
+	a =	atoi(argv[3]);
+	b =	atoi(argv[4]);
+
 	printf("...............Generated numbers............\n");
 	for(int i = X0; i < n; ++i)
 	{
