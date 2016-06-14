@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ $# == 4 ] ; then
-	./test-lgc $1 $2 $3 $4 > results.txt && less results.txt
+	./lgc.exe $1 $2 $3 $4 > results.txt && less results.txt
 else
-	echo "Usage: run <X0, a, b, n>"
+	echo "Usage: run <X0, n, a, b>"
 fi
