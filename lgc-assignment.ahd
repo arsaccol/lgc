@@ -1,0 +1,233 @@
+; NOME: Alexandre dos Reis Saccol
+; NUMERO: 205685
+; Multiplicacao e divisao retirados
+;  do codigo visto em aula.
+
+; Algoritmo:
+; entradas:	uint8 n, a, b, X0, i
+; saida:	uint8 Xi
+; inicio:
+;	Xi = X0;
+;	for(count, de 0 ate i)
+;		Xi = (Xi * a + b) % n
+; fim, ler Xi
+
+
+
+	ORG	0
+init_lgc:
+;	TODO: inicializar variaveis
+LDA	zero
+STA	var_count ;	var_count = 0
+LDA	in_X0
+STA	var_Xi ;	var_Xi = in_X0
+
+lgc_for:	; incremento ocorre em lgc_for_corpo_fim
+LDA	in_i
+SUB	var_count ;	compara var_count e in_i
+JNZ	lgc_for_corpo ;	se var_count == in_i, executa o corpo do for
+
+fim_lgc:
+LDA	var_Xi
+STA	out_Xi
+HLT
+
+
+lgc_for_corpo:
+LDA	var_Xi
+STA	Mcando
+LDA	in_a
+STA	Mcador
+JMP	MULT ;	AC = Xi * a (MULT deve pular para pos_mult)
+
+pos_mult: ; volta apos multiplicar
+LDA	Plsb
+ADD	in_b ;	AC = lsB(Xi * a) + b
+STA	Plsb ;	Plsb = lsB de (Xi*a+b)
+JC	for_soma_carry
+JMP	for_divisao
+
+for_soma_carry:
+LDA	Pmsb
+ADD	um
+STA 	Pmsb ; caso ocorra carry em Xi*a+b, msb+=1
+
+
+for_divisao:
+LDA	Pmsb
+STA	Dr ;	msB do dividendo = msB do produto
+LDA	Plsb
+STA	dq ;	lsB do dividendo = msB do produto
+LDA	in_n
+STA	v ;	divisor = n
+JMP	DIV ;	(DIV deve pular para lgc_corpo_fim)
+
+lgc_for_corpo_fim:
+LDA	Drt
+STA	var_Xi ;	Xi = resto da divisao
+LDA	var_count
+ADD	um
+STA	var_count ;	var_count++
+JMP	lgc_for ;	mais uma iteracao do laco
+
+;-------------------------------------------------------
+MULT:
+;-------------------------------------------------------
+; 1. Inicio: i=8; Pmsb=0, plsb=m
+       LDA oito
+       STA mult_i
+       LDA zero
+       STA Pmsb
+       LDA mcador
+       STA plsb
+; 2. Desloca plsb p/direita, bit menos significativo vai p/carry
+laco:  LDA plsb
+       SHR
+       STA plsb
+; 3. Se carry = 0, pula a soma (passo 4)
+       LDA Pmsb
+       JNC C0
+; 4. P = P + M
+       ADD Mcando
+; 5 Desloca P e p, com carry
+C0:    ROR
+       STA Pmsb
+       JNC plsb_ok
+       LDA plsb
+       OR  M128
+       STA plsb
+plsb_ok:
+; 6. Decrementa contador (i)
+       LDA mult_i
+       SUB um
+       STA mult_i
+; 7. Se n!=0, voltar para o passo 2
+       JNZ laco
+; Se não, terminar
+	;HLT
+	JMP	pos_mult
+;-------------------------------------------------------
+; FIM MULT
+;-------------------------------------------------------
+
+
+;-------------------------------------------------------
+DIV:
+;-------------------------------------------------------
+; verificação de exceções: divisão por zero e estouro
+     LDA v
+     JZ  div_por_zero ; divisor = 0
+     LDA Dr
+     SUB v
+     JNB estouro   ; D >= v provoca estouro
+
+; não ocorreu nenhuma exceção: inicialização
+     LDA Dr
+     STA Drt       ; Dr temporário
+     LDA dq
+     STA dqt       ; dq temporário
+     LDA oito
+     STA div_i         ; contador = 8
+
+repetir:           ; início do laço
+     LDA dqt
+     SHL
+     STA dqt       ; desloca dq p/esquerda
+     LDA Drt
+     ROL           ; desloca Dr p/esquerda
+     STA Drt       ; msbit de Dr em carry
+     JC  Dr_maior  ; se C=1, D > v
+     LDA Drt
+     SUB v         ; calcula D - v
+     JB  Dr_menor  ; se B=1, D < v
+
+Dr_maior:
+     LDA Drt       ; se D >= v
+     SUB v         ; pode subtrair
+     STA Drt
+     LDA dqt       ; e novo dígito de dq
+     OR  um        ; deve ser igual a 1
+     STA dqt
+
+Dr_menor:
+     LDA div_i
+     SUB um        ; decrementa contador
+     STA div_i
+     JNZ repetir   ; se i > 0, repete o laço
+
+fim:               ; fim normal
+     LDA um        ; estado = 1
+
+estado:
+     STA est       ; armazena estado
+	JMP	lgc_for_corpo_fim
+div_por_zero:      ; fim com erro: div. por zero
+     LDA zero      ; estado = 0
+     JMP estado
+
+estouro:           ; fim com erro: estouro
+     LDA mum       ; estado = -1
+     JMP estado
+;-------------------------------------------------------
+; FIM DIV
+;-------------------------------------------------------
+
+
+
+
+
+	ORG 200
+;----------------
+; ENTRADAS
+;----------------
+in_n:	DB 0
+in_a:	DB 0
+in_b:	DB 0
+in_X0:	DB 0
+in_i:	DB 0
+;----------------
+; SAIDA
+;----------------
+out_Xi:	DB 0
+;----------------
+
+
+;-------------------------------------------------------
+;-------------------------------------------------------
+; VARS
+;-------------------------------------------------------
+;-------------------------------------------------------
+var_Xi:		DB 0
+var_count: 	DB 0
+
+; definição de constantes
+zero: 	DB 0         ; constante 0
+um:   	DB 1         ; constante 1
+mum:  	DB -1        ; constante -1
+oito: 	DB 8         ; constante 8
+M128:	DB  128
+empty:	DB    0
+
+;-----------------------------
+; variaveis MULT e DIV 
+;-----------------------------
+; DIV
+
+
+Dr:   DB 0         	; msbits do dividendo 
+dq:   DB 0         	; lsbits do dividendo 
+v:    DB 0         	; divisor
+dqt:  DB 0         	; lsbits do dividendo - área de trabalho (no final = quociente)
+Drt:  DB 0         	; msbits do dividendo - área de trabalho (no final, = resto)
+est:  DB 0         	; estado: estouro = -1
+                   	;         div. por zero = 0
+                   	;         normal = 1
+div_i:    DB 0		; contador
+
+;MULT 
+
+Mcando:	DB	0
+Mcador:	DB	0
+Pmsb:	DB	0
+Plsb:	DB	0
+mult_i:	DB	0
